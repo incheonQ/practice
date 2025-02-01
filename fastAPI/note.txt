@@ -1,0 +1,172 @@
+
+# Reference : https://wikidocs.net/book/8531
+
+# 가상환경 생성
+python -m venv fastAPI
+
+# PowerShell 실행 정책을 변경
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# 가상환경 활성화
+cd fastAPI/Scripts
+.\activate
+
+>> (fastAPI) PS C:\Users\logis\Documents\practice\fastAPI\fastAPI\Scripts>
+
+# 가상환경 비활성화
+deactivate
+
+# 현재 Python 환경에 설치된 모든 패키지와 그 버전을 나열
+pip list
+--outdated : 최신 버전이 아닌 패키지만 표시
+--uptodate : 최신 버전인 패키지만 표시
+--format : 출력 형식 지정 (=columns, freeze, json)
+
+# 가상 환경에 fastAPI 설치
+pip install fastapi 
+
+# fastapi 어노테이션 정리
+- @app.get() : 데이터를 읽을 때 사용
+- @app.post() : 데이터를 생성할 때 사용
+- @app.put() : 데이터를 수정할 때 사용
+- @app.delete() : 데이터를 삭제할 때 사용
+
+# fastapi Pydantic 데이터 검증
+- Query : 쿼리 매개변수 검증
+- Path : 경로 매개변수 검증
+- Body : 요청 본문 검증
+- Header : 헤더 검증
+- Cookie : 쿠키 검증
+
+# 파이썬용 웹 서버 uvicorn
+pip install "uvicorn[standard]"
+
+# fastapi 서버 실행
+uvicorn main:app --reload
+
+# FastAPI에서 자동으로 생성되는 대화형 API 문서
+http://127.0.0.1:8000/docs -> 실행 가능
+http://127.0.0.1:8000/redoc -> 읽기만 가능
+
+
+# CORS 정책
+https://developer.mozilla.org/ko/docs/Web/HTTP/CORS
+CORS(Cross-Origin Resource Sharing)는 웹 브라우저에서 보안상의 이유로 적용되는 정책으로, 
+다른 출처(도메인, 프로토콜, 포트)의 리소스에 대한 접근을 제어
+기본원리 : 서버가 HTTP 헤더를 통해 브라우저에게 특정 출처의 웹 애플리케이션이 서버의 리소스에 접근할 수 있는 권한을 부여
+Origin 헤더: 브라우저는 교차 출처 요청 시 Origin 헤더를 포함하여 요청의 출처를 서버에 알립니다''
+
+# 도메인에 필요한 파일 정의
+- 라우터 파일
+URL과 API의 전체적인 동작을 관리
+- 데이터베이스 처리 파일
+CRUD (Create, Read, Update, Delete)
+- 입출력 관리 파일 
+입력 데이터와 출력 데이터의 스펙 정의 및 검증
+
+# ORM
+Object Relational Mapping
+파이썬 문법만으로 데이터베이스를 다룰 수 있다.
+ORM을 통해 쿼리를 직접 작성하지 않아도 데이터베이스의 데이터를 처리할 수 있다.
+
+# SQLAlchemy ORM 라이브러리
+pip install sqlalchemy 
+주로 소규모 프로젝트에서 사용하는 가벼운 파일을 기반으로 한 데이터베이스다. 
+보통은 SQLite로 개발을 빠르게 진행하고 
+이후 실제 운영 시스템에 반영할 때에는 좀 더 규모가 큰 데이터베이스로 교체한다.
+
+# alembic
+SQLAlchemy로 작성한 모델을 기반으로 데이터베이스를 쉽게 관리할 수 있게 도와주는 도구
+pip install alembic
+
+# alembic 초기화
+alembic init migrations
+
+# alembic이 사용할 데이터베이스의 접속 주소 설정
+1. alembic.ini 파일을 열고, 다음과 같이 수정
+(... 생략 ...)
+sqlalchemy.url = sqlite:///./myapi.db
+(... 생략 ...)
+
+2. migrations 디렉터리의 env.py도 다음과 같이 수정
+(... 생략 ...)
+import models
+(... 생략 ...)
+# add your model's MetaData object here
+# for 'autogenerate' support
+# from myapp import mymodel
+# target_metadata = mymodel.Base.metadata
+target_metadata = models.Base.metadata
+(... 생략 ...)
+
+3. 리비전 파일 생성
+alembic revision --autogenerate
+
+4. 리비전 파일 실행
+alembic upgrade head
+
+# alembic 없이 테이블 생성하기
+main.py에 다음 문장을 삽입하면 FastAPI 실행시 필요한 테이블들이 모두 생성된다.
+단, 데이터베이스에 테이블이 존재하지 않을 경우에만 테이블을 생성하며, 
+한번 생성된 테이블에 대한 변경 관리를 할 수 없다. 이러한 연유에서 alembic를 사용하여 데이터베이스를 관리한다.
+import models
+from database import engine
+models.Base.metadata.create_all(bind=engine)
+
+# DB Browser for SQLite 설치하기
+https://sqlitebrowser.org/dl 
+
+# 모델 테스트
+파이썬 셸을 사용
+>>> from models import Question, Answer
+>>> from datetime import datetime
+>>> q = Question(subject='당신은 누구인가요?', content='자기 소개 부탁드립니다.', create_base=datetime.now())
+>>> from database import SessionLocal
+>>> db = SessionLocal()
+>>> db.add(q)
+>>> db.commit()
+>>> q.id
+1
+>>> q = Question(subject='FastAPI 모델 질문입니다.', content='id는 자동으로 생성되나요?', create_base=datetime.now())
+>>> db.add(q)
+>>> db.commit()
+>>> q.id
+2
+
+# 작업 취소
+db.rollback()
+
+# 데이터 조회
+db.query(Question).all()
+db.query(Question).filter(Question.id==1).all()
+db.query(Question).get(1)
+db.get(Question, 1)
+db.query(Question).filter(Question.subject.like('%FastAPI%')).all()
+
+# 데이터 수정
+>>> q = db.get(Question, 2)
+>>> q.id
+2
+>>> q.subject
+'FastAPI 모델 질문입니다.'
+>>> q.subject = 'FastAPI Model Question'
+>>> db.commit()
+>>> q.subject
+'FastAPI Model Question'
+
+# 데이터 삭제
+q = db.get(Question, 1)
+db.delete(q)
+db.commit()
+
+# 답변 데이터 저장
+>>> a = Answer(question=q, content='네 자동으로 생성됩니다.', create_date=datetime.now())
+>>> db.add(a)
+>>> db.commit()
+
+# Pydantic
+FastAPI의 입출력 스펙을 정의하고 그 값을 검증하기 위해 사용하는 라이브러리
+Pydantic은 API의 입출력 항목을 다음과 같이 정의하고 검증할수 있다.
+- 입출력 항목의 갯수와 타입을 설정
+- 입출력 항목의 필수값 체크
+- 입출력 항목의 데이터 검증
